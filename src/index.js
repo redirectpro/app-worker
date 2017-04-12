@@ -18,6 +18,7 @@ conn.bull.fileConverter.process((job, done) => {
   const key = randtoken.generate(16) + '.json'
   const keyFullPath = `${key[0]}/${key[1]}/${key}`
   const params = { Bucket: config.awsS3Bucket, Key: keyFullPath, Body: JSON.stringify(object) }
+  console.log(params)
   conn.s3.putObject(params).promise().then((data) => {
     console.log('upload s3 done!')
 
