@@ -1,26 +1,65 @@
-import Queue from 'bull'
-import aws from 'aws-sdk'
-import config from '../config'
+import Promise from 'es6-promise'
+import config from './config'
+import conn from './connections'
 import randtoken from 'rand-token'
-import XLSX from 'xlsx'
+import ConvertService from './services/convert.service'
 
-aws.config.update({ 'region': config.awsRegion })
+const convertService = new ConvertService()
 
-const s3 = new aws.S3()
-const fileQueue = Queue('fileConverter', config.redisPort, config.redisHost)
-
-fileQueue.on('ready', () => {
+conn.bull.fileConverter.on('ready', () => {
   console.log('fileQueue is ready')
 }).on('error', (err) => {
   console.log(err)
 })
 
-fileQueue.process((job, done) => {
+conn.bull.fileConverter.process((job, done) => {
   console.log('Received message:', job.data.applicationId, job.data.redirectId, job.data.file)
-  const object = Buffer.from(job.data.fileData)
-  const key = randtoken.suid(16) + '.xlsx'
-  const params = { Bucket: 'testredirectpro', Key: key, Body: object }
-  s3.putObject(params).promise().then((data) => {
+  const object = convertService.toJson(job.data.fileData)
+  const key = randtoken.generate(16) + '.json'
+  const keyFullPath = `${key[0]}/${key[1]}/${key}`
+  const params = { Bucket: config.awsS3Bucket, Key: keyFullPath, Body: JSON.stringify(object) }
+  conn.s3.putObject(params).promise().then((data) => {
+    console.log('upload s3 done!')
+
+    const getParams = {
+      TableName: `${config.dynamodbPrefix}redirect`,
+      Key: {
+        applicationId: job.data.applicationId,
+        id: job.data.redirectId
+      }
+    }
+
+    conn.dyndb.get(getParams).promise().then((data) => {
+      console.log('get done!')
+      let promises = []
+
+      if (data.Item.objectKey) {
+        const p1 = conn.s3.deleteObject({
+          Bucket: config.awsS3Bucket,
+          Key: data.Item.objectKey
+        }).promise()
+        promises.push(p1)
+      }
+
+      let updGetParams = getParams
+      updGetParams.UpdateExpression = 'SET #obj = :obj'
+      updGetParams.ExpressionAttributeNames = { '#obj': 'objectKey' }
+      updGetParams.ExpressionAttributeValues = { ':obj': keyFullPath }
+
+      const p2 = conn.dyndb.update(updGetParams).promise()
+      promises.push(p2)
+
+      Promise.all(promises).then(() => {
+        console.log('update and delete done!')
+      }).catch((err) => {
+        console.log(err)
+      })
+
+      console.log(data.Item.objectKey)
+    }).catch((err) => {
+      console.log(err)
+    })
+
     console.log(data)
     done()
   }).catch((err) => {
@@ -28,38 +67,3 @@ fileQueue.process((job, done) => {
     done(err)
   })
 })
-
-const convertToJson = (file) => {
-    var workbook = XLSX.readFile(file)
-    var sheet_name_list = workbook.SheetNames;
-    sheet_name_list.forEach(function(y) {
-        var worksheet = workbook.Sheets[y];
-        var headers = {};
-        var data = [];
-        for(z in worksheet) {
-            if(z[0] === '!') continue;
-            //parse out the column, row, and value
-            var tt = 0;
-            for (var i = 0; i < z.length; i++) {
-                if (!isNaN(z[i])) {
-                    tt = i;
-                    break;
-                }
-            };
-            var col = z.substring(0,tt);
-            var row = parseInt(z.substring(tt));
-            var value = worksheet[z].v;
-
-            //store header names
-            if(row == 1 && value) {
-                headers[col] = value;
-                continue;
-            }
-            if(!data[row]) data[row]={};
-            data[row][headers[col]] = value;
-        }
-        data.shift();
-        data.shift();
-        console.log(data);
-    });
-}
