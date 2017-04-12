@@ -1,11 +1,11 @@
 export TAG=${CIRCLE_TAG:1:10}
-export IMAGE=$DOCKER_REPOSITORY:$TAG
+export IMAGE=$REPOSITORY_NAME:$TAG
 
 # PREPARE AND SEND TO EC2CONTAINER REPOSITORY
 eval $(aws ecr get-login --region $AWS_REGION)
 docker build --rm=false -t $IMAGE .
-docker tag $IMAGE $DOCKER_HOST/$IMAGE
-docker push $DOCKER_HOST/$IMAGE
+docker tag $IMAGE $REPOSITORY_HOST/$IMAGE
+docker push $REPOSITORY_HOST/$IMAGE
 
 # UPDATE TASK REVISION
 aws ecs list-task-definitions --family-prefix $ECS_TASK
