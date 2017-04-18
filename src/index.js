@@ -12,6 +12,8 @@ conn.bull.fileConverter.on('ready', () => {
   logger.info('fileConverter is ready')
 }).on('error', (err) => {
   logger.error(err)
+}).on('failed', (job, err) => {
+  logger.error(err.message)
 })
 
 conn.bull.fileConverter.process((job, done) => {
@@ -19,16 +21,20 @@ conn.bull.fileConverter.process((job, done) => {
   logger.info(`${path} applicationId: ${job.data.applicationId} redirectId: ${job.data.redirectId}`)
   job.progress(0)
 
-  const object = convertService.toJson(job.data.fileData)
-  job.progress(15)
-
   const key = randtoken.generate(16) + '.json'
   const keyFullPath = `${key[0]}/${key[1]}/${key}`
-  const params = { Bucket: config.awsS3Bucket, Key: keyFullPath, Body: JSON.stringify(object) }
-  logger.debug(`${path}`, params)
-  job.progress(20)
+  job.progress(1)
 
-  conn.s3.putObject(params).promise().then((data) => {
+  convertService.toJson(job.data.fileData).then((object) => {
+    job.progress(15)
+
+    const params = { Bucket: config.awsS3Bucket, Key: keyFullPath, Body: JSON.stringify(object) }
+    console.log(2)
+    logger.debug(`${path}`, params)
+    job.progress(20)
+
+    return conn.s3.putObject(params).promise()
+  }).then((data) => {
     logger.info(`${path} result of conn.s3.putObject then`)
     job.progress(50)
 
