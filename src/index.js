@@ -2,28 +2,35 @@ import Promise from 'es6-promise'
 import config from './config'
 import conn from './connections'
 import randtoken from 'rand-token'
+import LoggerHandler from './handlers/logger.handler'
 import ConvertService from './services/convert.service'
+const logger = LoggerHandler
 
 const convertService = new ConvertService()
 
 conn.bull.fileConverter.on('ready', () => {
-  console.log('fileQueue is ready')
+  logger.info('fileConverter is ready')
 }).on('error', (err) => {
-  console.log(err)
+  logger.error(err)
 })
 
 conn.bull.fileConverter.process((job, done) => {
-  console.log('Received message:', job.data.applicationId, job.data.redirectId, job.data.file)
+  const path = `process jobId: ${job.jobId}`
+  logger.info(`${path} applicationId: ${job.data.applicationId} redirectId: ${job.data.redirectId}`)
+  job.progress(0)
+
   const object = convertService.toJson(job.data.fileData)
+  job.progress(15)
+
   const key = randtoken.generate(16) + '.json'
   const keyFullPath = `${key[0]}/${key[1]}/${key}`
   const params = { Bucket: config.awsS3Bucket, Key: keyFullPath, Body: JSON.stringify(object) }
-  console.log(params)
-  job.progress(0)
+  logger.debug(`${path}`, params)
+  job.progress(20)
 
   conn.s3.putObject(params).promise().then((data) => {
-    console.log('upload s3 done!')
-    job.progress(25)
+    logger.info(`${path} result of conn.s3.putObject then`)
+    job.progress(50)
 
     const getParams = {
       TableName: `${config.dynamodbPrefix}redirect`,
@@ -33,46 +40,47 @@ conn.bull.fileConverter.process((job, done) => {
       }
     }
 
-    conn.dyndb.get(getParams).promise().then((data) => {
-      console.log('get done!')
-      job.progress(50)
+    return conn.dyndb.get(getParams).promise()
+  }).then((data) => {
+    logger.info(`${path} result of conn.dyndb.get then`)
+    job.progress(60)
 
-      let promises = []
+    let promises = []
 
-      if (data.Item.objectKey) {
-        const p1 = conn.s3.deleteObject({
-          Bucket: config.awsS3Bucket,
-          Key: data.Item.objectKey
-        }).promise()
-        promises.push(p1)
-      }
+    if (data.Item.objectKey) {
+      const p1 = conn.s3.deleteObject({
+        Bucket: config.awsS3Bucket,
+        Key: data.Item.objectKey
+      }).promise()
+      promises.push(p1)
+      logger.info(`${path} must delete object ${data.Item.objectKey}`)
+    }
 
-      job.progress(75)
+    job.progress(75)
 
-      let updGetParams = getParams
-      updGetParams.UpdateExpression = 'SET #obj = :obj'
-      updGetParams.ExpressionAttributeNames = { '#obj': 'objectKey' }
-      updGetParams.ExpressionAttributeValues = { ':obj': keyFullPath }
+    const updGetParams = {
+      TableName: `${config.dynamodbPrefix}redirect`,
+      Key: {
+        applicationId: job.data.applicationId,
+        id: job.data.redirectId
+      },
+      UpdateExpression: 'SET #obj = :obj',
+      ExpressionAttributeNames: { '#obj': 'objectKey' },
+      ExpressionAttributeValues: { ':obj': keyFullPath }
+    }
 
-      const p2 = conn.dyndb.update(updGetParams).promise()
-      promises.push(p2)
+    const p2 = conn.dyndb.update(updGetParams).promise()
+    promises.push(p2)
 
-      job.progress(85)
+    job.progress(85)
 
-      Promise.all(promises).then(() => {
-        job.progress(100)
-        done()
-        console.log('update and delete done!')
-      }).catch((err) => {
-        console.log(err)
-      })
-
-      console.log(data.Item.objectKey)
-    }).catch((err) => {
-      console.log(err)
-    })
+    return Promise.all(promises)
+  }).then(() => {
+    logger.info(`${path} result of Promise chain then/job done!`)
+    job.progress(100)
+    done()
   }).catch((err) => {
-    console.error(err)
+    logger.error(`${path} result of Promise chain catch`, err.message)
     done(err)
   })
 })

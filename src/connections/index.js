@@ -14,11 +14,13 @@ if (!global.conn.bull) {
   global.conn.bull = {
     fileConverter: Queue('fileConverter', config.redisPort, config.redisHost)
   }
+  logger.info('connected to bull queue')
 }
 
 // aws clients
 if (!global.conn.s3) {
   global.conn.s3 = new aws.S3()
+  logger.info('connected to s3')
 }
 
 if (!global.conn.dyndb) {
