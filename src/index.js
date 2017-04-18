@@ -19,8 +19,11 @@ conn.bull.fileConverter.process((job, done) => {
   const keyFullPath = `${key[0]}/${key[1]}/${key}`
   const params = { Bucket: config.awsS3Bucket, Key: keyFullPath, Body: JSON.stringify(object) }
   console.log(params)
+  job.progress(0)
+
   conn.s3.putObject(params).promise().then((data) => {
     console.log('upload s3 done!')
+    job.progress(25)
 
     const getParams = {
       TableName: `${config.dynamodbPrefix}redirect`,
@@ -32,6 +35,8 @@ conn.bull.fileConverter.process((job, done) => {
 
     conn.dyndb.get(getParams).promise().then((data) => {
       console.log('get done!')
+      job.progress(50)
+
       let promises = []
 
       if (data.Item.objectKey) {
@@ -42,6 +47,8 @@ conn.bull.fileConverter.process((job, done) => {
         promises.push(p1)
       }
 
+      job.progress(75)
+
       let updGetParams = getParams
       updGetParams.UpdateExpression = 'SET #obj = :obj'
       updGetParams.ExpressionAttributeNames = { '#obj': 'objectKey' }
@@ -50,7 +57,11 @@ conn.bull.fileConverter.process((job, done) => {
       const p2 = conn.dyndb.update(updGetParams).promise()
       promises.push(p2)
 
+      job.progress(85)
+
       Promise.all(promises).then(() => {
+        job.progress(100)
+        done()
         console.log('update and delete done!')
       }).catch((err) => {
         console.log(err)
@@ -60,9 +71,6 @@ conn.bull.fileConverter.process((job, done) => {
     }).catch((err) => {
       console.log(err)
     })
-
-    console.log(data)
-    done()
   }).catch((err) => {
     console.error(err)
     done(err)
