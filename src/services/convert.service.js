@@ -12,6 +12,8 @@ export default class ConvertService {
       sheetNameList.forEach((y) => {
         let worksheet = workbook.Sheets[y]
         let headers = {}
+        let index = 0
+        let lastRow
 
         for (let z in worksheet) {
           if (z[0] === '!') continue
@@ -32,12 +34,16 @@ export default class ConvertService {
             headers[col] = value
             continue
           }
-          if (!jsonData[row]) jsonData[row] = {}
-          jsonData[row][headers[col]] = value
+          if (!lastRow) lastRow = row
+          if (lastRow !== row) {
+            index += 1
+            lastRow = row
+          }
+          if (['to', 'from'].includes(headers[col])) {
+            if (!jsonData[index]) jsonData[index] = {}
+            jsonData[index][headers[col]] = value
+          }
         }
-
-        jsonData.shift()
-        jsonData.shift()
       })
 
       return resolve(jsonData)
