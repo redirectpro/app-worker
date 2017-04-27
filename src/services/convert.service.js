@@ -46,7 +46,11 @@ export default class ConvertService {
         }
       })
 
-      return resolve(jsonData)
+      if (jsonData.length === 0) {
+        return reject({ message: 'Invalid data or fields.' })
+      } else {
+        return resolve(jsonData)
+      }
     })
   }
 }
