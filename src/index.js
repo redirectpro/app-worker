@@ -25,11 +25,13 @@ conn.bull.fileConverter.process((job, done) => {
   const keyFullPath = `${key[0]}/${key[1]}/${key}`
   job.progress(1)
 
+  let objectLength = 0
+
   convertService.toJson(job.data.fileData).then((object) => {
     job.progress(15)
+    objectLength = object.length
 
     const params = { Bucket: config.awsS3Bucket, Key: keyFullPath, Body: JSON.stringify(object) }
-    console.log(2)
     logger.debug(`${path}`, params)
     job.progress(20)
 
@@ -70,9 +72,9 @@ conn.bull.fileConverter.process((job, done) => {
         applicationId: job.data.applicationId,
         id: job.data.redirectId
       },
-      UpdateExpression: 'SET #obj = :obj',
-      ExpressionAttributeNames: { '#obj': 'objectKey' },
-      ExpressionAttributeValues: { ':obj': keyFullPath }
+      UpdateExpression: 'SET #obj = :obj, #objl = :objl',
+      ExpressionAttributeNames: { '#obj': 'objectKey', '#objl': 'objectLength' },
+      ExpressionAttributeValues: { ':obj': keyFullPath, ':objl': objectLength }
     }
 
     const p2 = conn.dyndb.update(updGetParams).promise()
@@ -84,7 +86,7 @@ conn.bull.fileConverter.process((job, done) => {
   }).then(() => {
     logger.info(`${path} result of Promise chain then/job done!`)
     job.progress(100)
-    done()
+    done(null, { objectLength: objectLength })
   }).catch((err) => {
     logger.error(`${path} result of Promise chain catch`, err.message)
     done(err)
