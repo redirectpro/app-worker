@@ -72,6 +72,7 @@ export default class ReceiverService {
         this.logger.info(`${path} result of conn.s3.putObject then`)
         job.progress(100)
         done(null, {
+          queue: 'fileReceiver',
           objectLink: `https://${config.awsS3PublicBucket}/${objectKey}`
         })
       }).catch((err) => {
