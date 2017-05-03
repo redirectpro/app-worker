@@ -72,7 +72,7 @@ export default class ReceiverService {
         this.logger.info(`${path} result of conn.s3.putObject then`)
         job.progress(100)
         done(null, {
-          ObjectLink: `https://${config.awsS3PublicBucket}/${objectKey}`
+          objectLink: `https://${config.awsS3PublicBucket}/${objectKey}`
         })
       }).catch((err) => {
         this.logger.error(`${path} result of Promise chain catch`, err.message)
