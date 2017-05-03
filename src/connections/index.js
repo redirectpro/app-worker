@@ -12,7 +12,8 @@ if (!global.conn) {
 // bull server
 if (!global.conn.bull) {
   global.conn.bull = {
-    fileConverter: Queue('fileConverter', config.redisPort, config.redisHost)
+    fileConverter: Queue('fileConverter', config.redisPort, config.redisHost),
+    fileReceiver: Queue('fileReceiver', config.redisPort, config.redisHost)
   }
   logger.info('connected to bull queue')
 }
