@@ -41,7 +41,7 @@ export default class ConverterService {
       let objectLength = 0
 
       if (job.data.fileData) {
-        promise = this.toJson(job.data.file)
+        promise = this.toJson(job.data.fileData)
       } else {
         promise = this.analyzeJson(job.data.jsonData)
       }
