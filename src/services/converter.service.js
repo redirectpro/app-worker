@@ -33,13 +33,20 @@ export default class ConverterService {
       this.logger.info(`${path} applicationId: ${job.data.applicationId} redirectId: ${job.data.redirectId}`)
       job.progress(1)
 
+      let promise
       const key = randtoken.generate(16) + '.json'
       const keyFullPath = `${key[0]}/${key[1]}/${key}`
       job.progress(1)
 
       let objectLength = 0
 
-      this.toJson(job.data.fileData).then((object) => {
+      if (job.data.fileData) {
+        promise = this.toJson(job.data.file)
+      } else {
+        promise = this.analyzeJson(job.data.jsonData)
+      }
+
+      promise.then((object) => {
         job.progress(15)
         objectLength = object.length
 
@@ -154,6 +161,12 @@ export default class ConverterService {
       } else {
         return resolve(jsonData)
       }
+    })
+  }
+
+  analyzeJson (data) {
+    return new Promise((resolve, reject) => {
+      return resolve(data)
     })
   }
 }
