@@ -16,7 +16,7 @@ export default class ReceiverService {
   }
 
   startQueue () {
-    this.fileReceiver = Queue('fileReceiver', config.redisPort, config.redisHost)
+    this.fileReceiver = this.createQueue()
     this.fileReceiver.on('ready', () => {
       this.logger.info('fileReceiver is ready')
     }).on('error', (err) => {
@@ -24,6 +24,10 @@ export default class ReceiverService {
     }).on('failed', (job, err) => {
       this.logger.error(err.message)
     })
+  }
+
+  createQueue () {
+    return Queue('fileReceiver', config.redisPort, config.redisHost)
   }
 
   startProcess () {
@@ -46,7 +50,13 @@ export default class ReceiverService {
       conn.dyndb.get(getParams).promise().then((data) => {
         this.logger.info(`${path} result of conn.dyndb.get then`)
         job.progress(30)
-        if (!Object.keys(data).length) return done(null, { objectKey: null })
+
+        if (!Object.keys(data).length) {
+          return Promise.reject({
+            name: 'ObjectNotFound',
+            message: 'Object do not exist.'
+          })
+        }
 
         targetHost = data.Item.targetHost
 

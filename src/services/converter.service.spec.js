@@ -107,6 +107,7 @@ describe('./services/converter.service', () => {
           expect(err).to.be.null
           expect(object).to.be.an('object')
           expect(object.objectLength).to.be.equal(2)
+          expect(progress).to.be.equal(100)
           conn.s3.putObject.restore()
           conn.s3.deleteObject.restore()
           conn.dyndb.update.restore()
@@ -119,7 +120,7 @@ describe('./services/converter.service', () => {
       converterService.startProcess()
     })
 
-    it('error', (done) => {
+    it('should return error', (done) => {
       sinon.stub(converterService, 'getContent').rejects({
         name: 'NAME',
         message: 'message'
