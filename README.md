@@ -1,1 +1,3 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/f35aca89db3647a2b23f2ef68c0ee74b)](https://www.codacy.com/app/udlei/worker?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=redirectpro/worker/&amp;utm_campaign=Badge_Grade) [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/f35aca89db3647a2b23f2ef68c0ee74b)](https://www.codacy.com/app/udlei/worker?utm_source=github.com&utm_medium=referral&utm_content=redirectpro/worker/&utm_campaign=Badge_Coverage) [![CircleCI](https://circleci.com/gh/redirectpro/worker.svg?style=svg)](https://circleci.com/gh/redirectpro/worker)
+
 # worker
