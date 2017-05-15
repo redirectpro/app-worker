@@ -9,7 +9,7 @@ import EventEmitter from 'events'
 // const assert = chai.assert
 const expect = chai.expect
 
-describe.only('./services/application-billing.service', () => {
+describe('./services/application-billing.service', () => {
   const converterService = new ConverterService()
 
   it('start', (done) => {
