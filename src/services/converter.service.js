@@ -1,6 +1,6 @@
 import Promise from 'es6-promise'
 import XLSX from 'xlsx'
-import randtoken from 'rand-token'
+import cuid from 'cuid'
 import LoggerHandler from '../handlers/logger.handler'
 import Queue from 'bull'
 import conn from '../connections'
@@ -39,16 +39,13 @@ export default class ConverterService {
       this.logger.info(`${path} applicationId: ${job.data.applicationId} redirectId: ${job.data.redirectId}`)
       job.progress(1)
 
-      let promise
-      const key = randtoken.generate(16) + '.json'
+      const key = cuid() + '.json'
       const keyFullPath = `${key[0]}/${key[1]}/${key}`
       job.progress(1)
 
       let objectLength = 0
 
-      this.getContent(job.data)
-
-      promise.then((object) => {
+      this.getContent(job.data).then((object) => {
         job.progress(15)
         objectLength = object.length
 
