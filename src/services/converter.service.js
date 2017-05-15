@@ -2,14 +2,15 @@ import Promise from 'es6-promise'
 import XLSX from 'xlsx'
 import randtoken from 'rand-token'
 import LoggerHandler from '../handlers/logger.handler'
+import Queue from 'bull'
 import conn from '../connections'
 import config from '../config'
 
 export default class ConverterService {
 
   constructor () {
-    this.logger = LoggerHandler
-    this.fileConverter = conn.bull.fileConverter
+    this.logger = new LoggerHandler()
+    this.fileConverter = null
   }
 
   start () {
@@ -18,6 +19,7 @@ export default class ConverterService {
   }
 
   startQueue () {
+    this.fileConverter = this.createQueue()
     this.fileConverter.on('ready', () => {
       this.logger.info('fileConverter is ready')
     }).on('error', (err) => {
@@ -25,6 +27,10 @@ export default class ConverterService {
     }).on('failed', (job, err) => {
       this.logger.error(err.message)
     })
+  }
+
+  createQueue () {
+    return Queue('fileConverter', config.redisPort, config.redisHost)
   }
 
   startProcess () {
@@ -40,11 +46,7 @@ export default class ConverterService {
 
       let objectLength = 0
 
-      if (job.data.fileData) {
-        promise = this.toJson(job.data.fileData)
-      } else {
-        promise = this.analyzeJson(job.data.jsonData)
-      }
+      this.getContent(job.data)
 
       promise.then((object) => {
         job.progress(15)
@@ -55,7 +57,7 @@ export default class ConverterService {
         job.progress(20)
 
         return conn.s3.putObject(params).promise()
-      }).then((data) => {
+      }).then(() => {
         this.logger.info(`${path} result of conn.s3.putObject then`)
         job.progress(50)
 
@@ -113,6 +115,14 @@ export default class ConverterService {
     })
   }
 
+  getContent (data) {
+    if (data.fileData) {
+      return this.toJson(data.fileData)
+    } else {
+      return this.analyzeJson(data.jsonData)
+    }
+  }
+
   toJson (data) {
     return new Promise((resolve, reject) => {
       const workbook = XLSX.read(Buffer.from(data))
@@ -165,7 +175,7 @@ export default class ConverterService {
   }
 
   analyzeJson (data) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       return resolve(data)
     })
   }

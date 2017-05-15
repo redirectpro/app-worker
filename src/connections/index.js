@@ -1,21 +1,11 @@
 import config from '../config'
 import LoggerHandler from '../handlers/logger.handler'
-import Queue from 'bull'
 import aws from 'aws-sdk'
 aws.config.update({ 'region': config.awsRegion })
-const logger = LoggerHandler
+const logger = new LoggerHandler()
 
 if (!global.conn) {
   global.conn = {}
-}
-
-// bull server
-if (!global.conn.bull) {
-  global.conn.bull = {
-    fileConverter: Queue('fileConverter', config.redisPort, config.redisHost),
-    fileReceiver: Queue('fileReceiver', config.redisPort, config.redisHost)
-  }
-  logger.info('connected to bull queue')
 }
 
 // aws clients

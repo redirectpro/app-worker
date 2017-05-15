@@ -1,12 +1,13 @@
 import LoggerHandler from '../handlers/logger.handler'
+import Queue from 'bull'
 import conn from '../connections'
 import config from '../config'
 
 export default class ReceiverService {
 
   constructor () {
-    this.logger = LoggerHandler
-    this.fileReceiver = conn.bull.fileReceiver
+    this.logger = new LoggerHandler()
+    this.fileReceiver = null
   }
 
   start () {
@@ -15,6 +16,7 @@ export default class ReceiverService {
   }
 
   startQueue () {
+    this.fileReceiver = Queue('fileReceiver', config.redisPort, config.redisHost)
     this.fileReceiver.on('ready', () => {
       this.logger.info('fileReceiver is ready')
     }).on('error', (err) => {
@@ -68,7 +70,7 @@ export default class ReceiverService {
         }
 
         return conn.s3.putObject(putS3Params).promise()
-      }).then((data) => {
+      }).then(() => {
         this.logger.info(`${path} result of conn.s3.putObject then`)
         job.progress(100)
         done(null, {

@@ -1,3 +1,4 @@
+#!/bin/bash
 export TAG=${CIRCLE_TAG:1:10}
 export IMAGE=$REPOSITORY_NAME:$TAG
 
