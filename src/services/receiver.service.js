@@ -1,3 +1,4 @@
+import Promise from 'es6-promise'
 import LoggerHandler from '../handlers/logger.handler'
 import Queue from 'bull'
 import conn from '../connections'

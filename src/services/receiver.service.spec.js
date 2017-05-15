@@ -132,7 +132,7 @@ describe('./services/converter.service', () => {
           }
         }
 
-        cb(job, (err, object) => {
+        cb(job, (err) => {
           try {
             expect(err.name).to.be.equal('ObjectNotFound')
             expect(err.message).to.be.equal('Object do not exist.')
@@ -175,7 +175,7 @@ describe('./services/converter.service', () => {
           }
         }
 
-        cb(job, (err, object) => {
+        cb(job, (err) => {
           expect(err.name).to.be.equal('NAME')
           expect(err.message).to.be.equal('message')
           conn.dyndb.get.restore()
