@@ -59,6 +59,14 @@ export default class ReceiverService {
           })
         }
 
+        /* No objectKey */
+        if (!data.Item.objectKey) {
+          return Promise.reject({
+            name: 'ObjectKeyNotFound',
+            message: 'ObjectKey do not exist.'
+          })
+        }
+
         targetHost = data.Item.targetHost
 
         const getS3Params = {
