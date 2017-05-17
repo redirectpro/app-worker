@@ -176,6 +176,7 @@ describe('./services/converter.service', () => {
 
         cb(job, (err) => {
           try {
+            expect(progress).to.be.equal(100)
             expect(err.name).to.be.equal('ObjectKeyNotFound')
             expect(err.message).to.be.equal('ObjectKey do not exist.')
             conn.dyndb.get.restore()
