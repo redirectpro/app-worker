@@ -108,7 +108,7 @@ describe('./services/converter.service', () => {
       receiverService.startProcess()
     })
 
-    it('should return done(err)', (done) => {
+    it('should return ObjectNotFound', (done) => {
       sinon.stub(conn.dyndb, 'get').callsFake(() => {
         return {
           promise: () => {
@@ -136,6 +136,49 @@ describe('./services/converter.service', () => {
           try {
             expect(err.name).to.be.equal('ObjectNotFound')
             expect(err.message).to.be.equal('Object do not exist.')
+            conn.dyndb.get.restore()
+            receiverService.fileReceiver.process.restore()
+            done()
+          } catch (error) {
+            done(error)
+          }
+        })
+      })
+
+      receiverService.startProcess()
+    })
+
+    it('should return ObjectKeyNotFound', (done) => {
+      sinon.stub(conn.dyndb, 'get').callsFake(() => {
+        return {
+          promise: () => {
+            return Promise.resolve({
+              Item: {}
+            })
+          }
+        }
+      })
+
+      sinon.stub(receiverService.fileReceiver, 'process').callsFake((cb) => {
+        let progress = 0
+
+        const job = {
+          jobId: 1,
+          data: {
+            applicationId: 'app-id',
+            redirectId: 'redirect-id'
+          },
+          progress: (value) => {
+            progress = value
+            return progress
+          }
+        }
+
+        cb(job, (err) => {
+          try {
+            expect(progress).to.be.equal(100)
+            expect(err.name).to.be.equal('ObjectKeyNotFound')
+            expect(err.message).to.be.equal('ObjectKey do not exist.')
             conn.dyndb.get.restore()
             receiverService.fileReceiver.process.restore()
             done()
